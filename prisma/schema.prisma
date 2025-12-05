@@ -1,0 +1,276 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("user") // user, admin
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  bookings      Booking[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Booking {
+  id            String   @id @default(cuid())
+  userId        String?
+  tourId        String?
+  
+  // Customer Details
+  firstName     String
+  lastName      String
+  email         String
+  phone         String
+  
+  // Booking Details
+  destination   String
+  tourName      String
+  startDate     DateTime
+  endDate       DateTime?
+  numberOfGuests Int
+  
+  // Special Requests
+  specialRequests String?
+  
+  // Pricing
+  totalPrice    Float?
+  paymentStatus String   @default("pending") // pending, paid, cancelled
+  
+  // Status
+  status        String   @default("pending") // pending, confirmed, cancelled
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User?    @relation(fields: [userId], references: [id])
+  tour          Tour?    @relation(fields: [tourId], references: [id])
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  status    String   @default("new") // new, read, replied
+  createdAt DateTime @default(now())
+}
+
+model NewsletterSubscriber {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  subscribed  Boolean  @default(true)
+  subscribedAt DateTime @default(now())
+  unsubscribedAt DateTime?
+}
+
+model Tour {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String
+  shortDescription String?
+  
+  // Details
+  duration        Int      // in days
+  maxGroupSize    Int?
+  difficulty      String?  // easy, moderate, challenging
+  
+  // Location
+  destination     String
+  locations       String?  // JSON array of locations
+  
+  // Pricing
+  price           Float
+  discountPrice   Float?
+  
+  // Dates
+  startDates      String?  // JSON array of available start dates
+  
+  // Media
+  image           String?
+  gallery         String?  // JSON array of image URLs
+  
+  // Features
+  included        String?  // JSON array of included items
+  notIncluded     String?  // JSON array of not included items
+  
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  
+  // Stats
+  rating          Float?   @default(5.0)
+  reviewCount     Int?     @default(0)
+  
+  featured        Boolean  @default(false)
+  active          Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  bookings        Booking[]
+  reviews         Review[]
+}
+
+model Destination {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  country         String
+  description     String
+  shortDescription String?
+  
+  // Media
+  image           String?
+  coverImage      String?
+  gallery         String?  // JSON array
+  
+  // Details
+  bestTimeToVisit String?
+  attractions     String?  // JSON array
+  
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  
+  featured        Boolean  @default(false)
+  active          Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model BlogPost {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  excerpt         String?
+  content         String
+  
+  // Media
+  featuredImage   String?
+  
+  // Categorization
+  category        String?
+  tags            String?  // JSON array
+  
+  // Author
+  author          String   @default("UK Travels Team")
+  authorImage     String?
+  
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  
+  // Stats
+  views           Int      @default(0)
+  
+  published       Boolean  @default(false)
+  publishedAt     DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  name        String
+  location    String?
+  email       String?
+  rating      Int      @default(5)
+  text        String
+  tourName    String?
+  image       String?
+  
+  approved    Boolean  @default(false)
+  featured    Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  tourId      String
+  userId      String?
+  
+  name        String
+  email       String?
+  rating      Int
+  title       String?
+  comment     String
+  
+  approved    Boolean  @default(false)
+  helpful     Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tour        Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+}
+
+model GalleryImage {
+  id          String   @id @default(cuid())
+  title       String?
+  description String?
+  imageUrl    String
+  category    String?  // destination, tour, culture, nature, etc.
+  location    String?
+  
+  featured    Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
